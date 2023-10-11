@@ -1,264 +1,80 @@
-// Вопросы:
-// Почему выводит все по порядку, а не в перемешку? или так и должно быть?
-// Как бороться read и write, если всё будет в перемешку?
-// Правильно ли описал схему из варианта лабы?
-// Как представить child и parent в разных программах?
-
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include <unistd.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 
-std::string to_lower(const std::string& str) {
-    std::string res = "";
-    for (char ch : str) {
-        res += tolower(ch);
-    }
-    return res;
-}
-
-std::string delete_spaces(const std::string& str) {
-    std::string res = "";
-    bool flag = 0;
-    for (char ch : str) {
-        if (ch != ' ') {
-            res += ch;
-            flag = 0;
+int main() {
+    std::cout << "Push enter to start. ";
+    std::string enter;
+    while (getline(std::cin, enter)) {
+        // Creating pipes
+        int pipe_1[2];
+        int pipe_add[2];
+        int pipe_2[2];
+        if (pipe(pipe_1) == -1) {
+            std::cout << "Something wrong with pipe_1" << std::endl;
+            return 1;
         }
-        if (ch == ' ' and flag == 0) {
-            res += ch;
-            flag = 1;
+        if (pipe(pipe_add) == -1) {
+            std::cout << "Something wrong with pipe_add" << std::endl;
+            return 2;
         }
-    }
-    return res;
-}
-
-int main(int argc, char* argv[]) {
-
-    int pfd1[2];
-    int addpfd[2];
-    int pfd2[2];
-    if (pipe(pfd1) == -1) {
-        std::cout << "Error: pfd1 does not work" << std::endl;
-        return 1;
-    }
-    if (pipe(addpfd) == -1) {
-        std::cout << "Error: addpfd does not work" << std::endl;
-        return 2;
-    }
-    if (pipe(pfd2) == - 1) {
-        std::cout << "Error: pfd2 does not work" << std::endl;
-    }
-
-    int pid1 = fork();
-
-    if (pid1 > 0) {
-        // Parent process
-        close(pfd1[0]);
-
-        // Trying to read strings from stdin
-        std::vector<std::string> strings;
-        std::string str;
-        // while (std::cin >> str) {
-        //     strings.push_back(str);
-        // }
-        while (getline(std::cin, str, '\n')) {
-            strings.push_back(str);
-        }
-
-
-        // Trying to write vector_len to pipe1
-        int vector_len = strings.size();
-        write(pfd1[1], &vector_len, sizeof(int));
-        std::cout << "vector_len in parent: " << vector_len << std::endl;
-
-        // Trying to write strings to pipe1
-        for (auto string : strings) {
-            int string_len = string.length();
-            write(pfd1[1], &string_len, sizeof(int));
-            std::cout << "string_len in parent: " << string_len << std::endl;
-            
-            write(pfd1[1], string.c_str(), string_len);
-            std::cout << "string in parent: " << string << std::endl;
-
-        }
-
-        close(pfd1[1]);
-
-        // Trying to make child_2
-        int pid2 = fork();
-        if (pid2 > 0) {
-            // Still parent process
-            close(pfd2[1]);
-            
-            // Trying to read strings from pipe2
-            std::vector<std::string> strings;
-            // Trying to read vector_len from pipe2
-            int vector_len;
-            read(pfd2[0], &vector_len, sizeof(int));
-            std::cout << "vector_len in parent: " << vector_len << std::endl;
-            
-            // Trying to read strings from pipe2
-            for (int i = 0; i < vector_len; ++i) {
-                int string_len;
-                read(pfd2[0], &string_len, sizeof(int));
-                std::cout << "string_len in parent: " << string_len << std::endl;
-
-                std::string string(string_len, ' ');
-
-                read(pfd2[0], string.data(), string_len);
-                std::cout << "string in parent: " << string << std::endl;
-                strings.push_back(string);
-            }
-            close(pfd2[0]);
-            std::cout << "===================" << std::endl;
-            for (auto el : strings) {
-                std::cout << "Final: vector_string from parent: " << el << std::endl;
-            }
-            std::cout << "===================" << std::endl;
-
-
-            
-
-        } else if (pid2 == 0) {
-            // Child2 process
-            close(addpfd[1]);
-            close(pfd2[0]);
-            // Trying to read strings from additional pipe
-            std::vector<std::string> strings;
-            // Trying to read vector_len from additional pipe
-            int vector_len;
-            read(addpfd[0], &vector_len, sizeof(int));
-            std::cout << "vector_len in child_2: " << vector_len << std::endl;
-            
-            // Trying to read strings from additional pipe
-            for (int i = 0; i < vector_len; ++i) {
-                int string_len;
-                read(addpfd[0], &string_len, sizeof(int));
-                std::cout << "string_len in child_2: " << string_len << std::endl;
-
-                std::string string(string_len, ' ');
-
-                read(addpfd[0], string.data(), string_len);
-                std::cout << "string in child_2: " << string << std::endl;
-                strings.push_back(string);
-            }
-            close(addpfd[0]);
-
-            std::cout << "===================" << std::endl;
-
-            // Print strings before delete_spaces
-            for (auto el : strings) {
-                std::cout << "vector_string from child_2: " << el << std::endl;
-            }
-
-            std::cout << "===================" << std::endl;
-
-            // Trying delete_spaces
-            for (int i = 0; i < vector_len; ++i) {
-                strings[i] = delete_spaces(strings[i]);
-            }
-
-            // Print strings after delete_spaces
-            for (auto el : strings) {
-                std::cout << "vector_string from child_2: " << el << std::endl;
-            }
-            std::cout << "===================" << std::endl;
-
-
-            //----------------------------------
-            // Trying to write strings to pfd2
-            
-            // Trying to write vector_len to pipe2
-            write(pfd2[1], &vector_len, sizeof(int));
-            std::cout << "vector_len in child2: " << vector_len << std::endl;
-            
-            // Trying to write strings to pipe2
-            for (auto string : strings) {
-                int string_len = string.length();
-                write(pfd2[1], &string_len, sizeof(int));
-                std::cout << "string_len in child2: " << string_len << std::endl;
-                
-                write(pfd2[1], string.c_str(), string_len);
-                std::cout << "string in child2: " << string << std::endl;
-
-            }
-            close(pfd2[1]);
-
-
-
-
-        }
-
-
-
-
-    } else if (pid1 == 0) {
-        // Child1 process
-        close(pfd1[1]);
-        close(addpfd[0]);
-        // Trying to read strings from pipe1
-        std::vector<std::string> strings;
-        // Trying to read vector_len from pipe1
-        int vector_len;
-        read(pfd1[0], &vector_len, sizeof(int));
-        std::cout << "vector_len in child_1: " << vector_len << std::endl;
-        
-        // Trying to read strings from pipe1
-        for (int i = 0; i < vector_len; ++i) {
-            int string_len;
-            read(pfd1[0], &string_len, sizeof(int));
-            std::cout << "string_len in child_1: " << string_len << std::endl;
-
-            std::string string(string_len, ' ');
-
-            read(pfd1[0], string.data(), string_len);
-            std::cout << "string in child_1: " << string << std::endl;
-            strings.push_back(string);
+        if (pipe(pipe_2) == -1) {
+            std::cout << "Something wrong with pipe_2" << std::endl;
+            return 3;
         }
         
-        close(pfd1[0]);
+        int pid_1 = fork();
 
-        std::cout << "===================" << std::endl;
+        if (pid_1 == 0) {
+            // Child_1
+            std::cout << "Child_1 process" << std::endl;
+            close(pipe_1[1]);
+            close(pipe_add[0]);
+            dup2(pipe_1[0], STDIN_FILENO);
+            dup2(pipe_add[1], STDOUT_FILENO);
+            execl("child1", "child1", NULL);
 
-        // Print strings before to_lower
-        for (auto el : strings) {
-            std::cout << "vector_string from child_1: " << el << std::endl;
-        }
+        } else if (pid_1 > 0) {
+            // Parent
+            close(pipe_1[0]);
+            std::cout << "Parent process" << std::endl;
+            std::string str;
+            std::cout << "Enter your string: " << std::endl;
+            getline(std::cin, str, '\n');
+            int len = str.length();
+            write(pipe_1[1], &len, sizeof(int));
+            write(pipe_1[1], str.c_str(), len);
+            close(pipe_1[1]);
 
-        std::cout << "===================" << std::endl;
+            int pid_2 = fork();
+            if (pid_2 == 0) {
+                // Child_2
+                close(pipe_add[1]);
+                close(pipe_2[0]);
+                dup2(pipe_add[0], STDIN_FILENO);
+                dup2(pipe_2[1], STDOUT_FILENO);
+                execl("child2", "child2", NULL);
 
-        // Trying to_lower
-        for (int i = 0; i < vector_len; ++i) {
-            strings[i] = to_lower(strings[i]);
-        }
-
-        // Print strings after to_lower
-        for (auto el : strings) {
-            std::cout << "vector_string from child_1: " << el << std::endl;
-        }
-        std::cout << "===================" << std::endl;
-
-        // Trying to write vector_len to additional pipe
-        write(addpfd[1], &vector_len, sizeof(int));
-        std::cout << "vector_len in child1: " << vector_len << std::endl;
-        
-        // Trying to write strings to additional pipe
-        for (auto string : strings) {
-            int string_len = string.length();
-            write(addpfd[1], &string_len, sizeof(int));
-            std::cout << "string_len in child1: " << string_len << std::endl;
+            } else if (pid_2 > 0) {
+                // Parent
+                int len;
+                read(pipe_2[0], &len, sizeof(int));
+                std::string str(len, ' ');
+                read(pipe_2[0], str.data(), len);
+                std::cout << "FINAL len: " << len << " str: " << str << std::endl;
+                std::cout << "Push enter to continue ";
             
-            write(addpfd[1], string.c_str(), string_len);
-            std::cout << "string in child1: " << string << std::endl;
-
+            } else {
+                std::cout << "Error: smth wrong with pid_2";
+                return 4;
+            }
+        } else {
+            std::cout << "Error: smth wrong with pid_1";
+            return 5;
         }
-        close(addpfd[1]);
     }
-
-
-
     return 0;
 }
