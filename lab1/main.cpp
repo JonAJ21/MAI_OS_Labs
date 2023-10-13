@@ -33,9 +33,22 @@ int main() {
             std::cout << "Child_1 process" << std::endl;
             close(pipe_1[1]);
             close(pipe_add[0]);
-            dup2(pipe_1[0], STDIN_FILENO);
-            dup2(pipe_add[1], STDOUT_FILENO);
+            // dup2(pipe_1[0], STDIN_FILENO);
+            // dup2(pipe_add[1], STDOUT_FILENO);
+            if (dup2(pipe_1[0], STDIN_FILENO) == -1) {
+                std::cout << "Error: dup2 1" << std::endl;
+                return 20;
+            }
+            if (dup2(pipe_add[1], STDOUT_FILENO) == -1) {
+                std::cout << "Error: dup2 2" << std::endl;
+                return 21;
+            }
+
             execl("child1", "child1", NULL);
+            if (execl("child1", "child1", NULL) == -1) {
+                std::cout << "Error: exec child1" << std::endl;
+                return 6;
+            }
 
         } else if (pid_1 > 0) {
             // Parent
@@ -45,8 +58,14 @@ int main() {
             std::cout << "Enter your string: " << std::endl;
             getline(std::cin, str, '\n');
             int len = str.length();
-            write(pipe_1[1], &len, sizeof(int));
-            write(pipe_1[1], str.c_str(), len);
+            if (write(pipe_1[1], &len, sizeof(int)) != sizeof(int)) {
+                std::cout << "Error: write" << std::endl;
+                return 8;
+            }
+            if (write(pipe_1[1], str.c_str(), len) != len) {
+                std::cout << "Error: write" << std::endl;
+                return 9;
+            }
             close(pipe_1[1]);
 
             int pid_2 = fork();
@@ -54,17 +73,37 @@ int main() {
                 // Child_2
                 close(pipe_add[1]);
                 close(pipe_2[0]);
-                dup2(pipe_add[0], STDIN_FILENO);
-                dup2(pipe_2[1], STDOUT_FILENO);
+                
+                // dup2(pipe_add[0], STDIN_FILENO);
+                // dup2(pipe_2[1], STDOUT_FILENO);
+                if (dup2(pipe_add[0], STDIN_FILENO) == -1) {
+                    std::cout << "Error: dup2" << std::endl;
+                    return 22;
+                }
+                if (dup2(pipe_2[1], STDOUT_FILENO) == -1) {
+                    std::cout << "Error: dup2" << std::endl;
+                    return 23;
+                }
                 execl("child2", "child2", NULL);
+                if (execl("child2", "child2", NULL) == -1) {
+                    std::cout << "Error: exec child2" << std::endl;
+                    return 7;
+                }
 
             } else if (pid_2 > 0) {
                 // Parent
                 int len;
-                read(pipe_2[0], &len, sizeof(int));
+                // read(pipe_2[0], &len, sizeof(int));
+                if (read(pipe_2[0], &len, sizeof(int)) != sizeof(int)) {
+                    std::cout << "Error: read" << std::endl;
+                    return 10;
+                }
                 std::string str(len, ' ');
-                read(pipe_2[0], str.data(), len);
-                std::cout << "FINAL len: " << len << " str: " << str << std::endl;
+                if (read(pipe_2[0], str.data(), len) != len) {
+                    std::cout << "Error: read" << std::endl;
+                    return 11;
+                }
+                std::cout << "\nFINAL len: " << len << " str: " << str << std::endl;
                 std::cout << "Push enter to continue ";
             
             } else {

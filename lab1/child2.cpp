@@ -21,13 +21,24 @@ std::string delete_spaces(const std::string& str) {
 
 int main() {
     int len;
-    read(STDIN_FILENO, &len, sizeof(int));
+    if (read(STDIN_FILENO, &len, sizeof(int)) != sizeof(int)) {
+        std::cout << "Error: read" << std::endl;
+        return 16;
+    }
     std::string str(len, ' ');
-    read(STDIN_FILENO, str.data(), len);
+    if (read(STDIN_FILENO, str.data(), len) != len) {
+        std::cout << "Error: read" << std::endl;
+        return 17;
+    }
     str = delete_spaces(str);
     len = str.size();
-    // std::cout << delete_spaces(str) << std::endl;
-    write(STDOUT_FILENO, &len, sizeof(int));
-    write(STDOUT_FILENO, str.c_str(), len);
+    if (write(STDOUT_FILENO, &len, sizeof(int)) != sizeof(int)) {
+        std::cout << "Error: write" << std::endl;
+        return 18;
+    }
+    if (write(STDOUT_FILENO, str.c_str(), len) != len) {
+        std::cout << "Error: write" << std::endl;
+        return 19;
+    }
     return 0;
 }

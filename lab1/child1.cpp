@@ -14,11 +14,23 @@ std::string to_lower(const std::string& str) {
 
 int main() {
     int len;
-    read(STDIN_FILENO, &len, sizeof(int));
+    if (read(STDIN_FILENO, &len, sizeof(int)) != sizeof(int)) {
+        std::cout << "Error: read" << std::endl;
+        return 12;
+    }
     std::string str(len, ' ');
-    read(STDIN_FILENO, str.data(), len);
+    if (read(STDIN_FILENO, str.data(), len) != len) {
+        std::cout << "Error: read" << std::endl;
+        return 13;
+    }
     str = to_lower(str);
-    write(STDOUT_FILENO, &len, sizeof(int));
-    write(STDOUT_FILENO, str.c_str(), len);
+    if (write(STDOUT_FILENO, &len, sizeof(int)) != sizeof(int)) {
+        std::cout << "Error: write" << std::endl;
+        return 14;
+    }
+    if (write(STDOUT_FILENO, str.c_str(), len) != len) {
+        std::cout << "Error: write" << std::endl;
+        return 15;
+    }
     return 0;
 }
