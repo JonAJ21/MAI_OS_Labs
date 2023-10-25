@@ -8,7 +8,7 @@
 #include <pthread.h>
 
 int const MAX_COORD = 20; // Задаю квадрат 20x20
-int const POINTS_COUNT = 20; // Задаю количество точек
+int const POINTS_COUNT = 30; // Задаю количество точек
 
 // using Point = std::pair<int, int>;
 struct Point {
@@ -43,7 +43,7 @@ int main() {
     std::srand(std::time(nullptr));
     std::vector<Point> points = make_random_sample(POINTS_COUNT, MAX_COORD);
 
-    int k = 4; // Число кластеров
+    int k = 3; // Число кластеров
     int steps = 30; // Количество итераций, за которое мы будем искать кластеры
     std::vector<Claster> clasters(k); // Наши кластеры
     // Сначала случайным образом выставляем на этой же плоскости k центров кластеров

@@ -28,8 +28,8 @@ for claster_id in range(0, k):
         i += 1
     old_clasters[claster_id].append(points)
 
-print(old_clasters[0])
-print(old_clasters[1])
+# print(old_clasters[0])
+# print(old_clasters[1])
 
 # Кластеры после изменений
 data = data[i:]
@@ -47,9 +47,9 @@ for claster_id in range(0, k):
         j += 1
         i += 1
     new_clasters[claster_id].append(points)
-print("---------------------")
-print(new_clasters[0])
-print(new_clasters[1])
+# print("---------------------")
+# print(new_clasters[0])
+# print(new_clasters[1])
 
 # Строим графики
 # import numpy as np
