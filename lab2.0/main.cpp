@@ -39,12 +39,21 @@ double distance(Point lhs, Point rhs) {
                 (lhs.y - rhs.y) * (lhs.y - rhs.y));
 }
 
+
+
+
+
+
+
+
 int main() {
-    std::srand(std::time(nullptr));
-    std::vector<Point> points = make_random_sample(POINTS_COUNT, MAX_COORD);
+
 
     int k = 3; // Число кластеров
     int steps = 30; // Количество итераций, за которое мы будем искать кластеры
+
+    std::srand(std::time(nullptr));
+    std::vector<Point> points = make_random_sample(POINTS_COUNT, MAX_COORD);
     std::vector<Claster> clasters(k); // Наши кластеры
     // Сначала случайным образом выставляем на этой же плоскости k центров кластеров
     for (int i = 0; i < k; ++i) {
@@ -52,7 +61,6 @@ int main() {
         clasters[i].center.y = std::rand() % MAX_COORD;
         clasters[i].center.claster = i;
     }
-
     // Записываем начальные координаты в файл (для дальнейшей визуализации)
     std::ofstream out;
     out.open("out.txt");
@@ -70,9 +78,11 @@ int main() {
         }
 
         // Сначала мы «привязываем» каждую точку к тому центроиду, к которому она ближе
+        // Надо делать параллельно
         for (int j = 0; j < POINTS_COUNT; ++j) {
             int closest_claster_id = 0;
             double closest_distance = 1e9;
+
             for (int i = 0; i < k; ++i) {
                 if (distance(clasters[i].center, points[j]) < closest_distance) {
                     closest_distance = distance(clasters[i].center, points[j]);
@@ -84,6 +94,8 @@ int main() {
         }
 
         // Передаем начальные кластеры в файл
+        // Параллельно делать не буду т.к может неправильно записаться в файл,
+        // да и необходимости в этом нет
         if (step == 0) {
             for (int i = 0; i < k; ++i) {
                 out << i << ' ' << clasters[i].points.size() << ' ' <<
@@ -95,6 +107,7 @@ int main() {
         }
 
         // Ищем новый центр масс кластера
+        // Надо делать параллельно
         for (int i = 0; i < k; ++i) {
             Point new_claster_center = {0, 0, i};
             for (auto point : clasters[i].points) {
