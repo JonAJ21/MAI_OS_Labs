@@ -7,8 +7,8 @@
 #include <cmath>
 #include <pthread.h>
 
-int const MAX_COORD = 20; // Задаю квадрат 20x20
-int const POINTS_COUNT = 30; // Задаю количество точек
+int const MAX_COORD = 100; // Задаю квадрат 20x20
+int const POINTS_COUNT = 10000; // Задаю количество точек
 
 // using Point = std::pair<int, int>;
 struct Point {
