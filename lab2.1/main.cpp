@@ -11,7 +11,7 @@
 int const MAX_COORD = 20; // Задаю квадрат 20x20
 int const POINTS_COUNT = 30; // Задаю количество точек
 int const STEPS = 30; // Количество итераций, за которое мы будем искать кластеры
-int const MAX_THREADS = 6;
+int const MAX_THREADS = 4;
 pthread_mutex_t mutex;
 
 
@@ -43,7 +43,9 @@ void* connect_point(void* args);
 void* find_center(void* args);
 
 int main() {
-    int k = 3; // Число кластеров
+    int k; // Число кластеров
+    std::cout << "Введите количество кластеров" << std::endl;
+    std::cin >> k;
 
     std::srand(std::time(nullptr));
     std::vector<Point> points = make_random_sample(POINTS_COUNT, MAX_COORD);
@@ -68,6 +70,11 @@ int main() {
     }
     
     pthread_t threads[MAX_THREADS];
+    // Выделить массив аргументов
+    std::vector<myArgs>
+    // Избавиться от мьютексов
+    // Создать массив моих аргументов (i-й thread , указатель на args)
+
     // Запускаем цикл поиска кластеров
     for (int step = 0; step < STEPS; ++step) {
         // Очищаем точки принадлежащие кластеру
@@ -109,18 +116,6 @@ int main() {
             }
         }
         
-        // // Проверка выделили мы все кластеры (Если нет, то рандомим все центры еще раз)
-        // for (int i = 0; i < k; ++i) {
-        //     if (clasters[i].points.size() == 0) {
-        //         std::cout << "ZEERROORORO" << std::endl;
-        //         for (int j = 0; j < k; ++j) {
-        //             args.clasters[j].center.x = std::rand() % MAX_COORD;
-        //             args.clasters[j].center.y = std::rand() % MAX_COORD;
-                    
-        //         }
-        //         continue;
-        //     }
-        // }
 
         // Ищем новый центр масс кластера
         // Надо делать параллельно
@@ -146,6 +141,24 @@ int main() {
         }
         pthread_mutex_destroy(&mutex);
         
+        // Проверка выделили мы все кластеры (Если нет, то рандомим все центры еще раз)
+        int flag = 0;
+        for (int i = 0; i < k; ++i) {
+            if (args.clasters[i].points.size() == 0) {
+                for (int j = 0; j < k; ++j) {
+                    args.clasters[j].center.x = std::rand() % MAX_COORD;
+                    args.clasters[j].center.y = std::rand() % MAX_COORD;
+                }
+                flag = 1;
+                std::cout << "ZEERROORORO" << std::endl;
+                break;
+            }
+        }
+        if (flag == 1) {
+            continue;
+        }
+
+
         for (int i = 0; i < k; ++i) {
             args.clasters[i].center.x /= args.clasters[i].points.size();
             args.clasters[i].center.y /= args.clasters[i].points.size();
@@ -163,12 +176,6 @@ int main() {
  
 
     out.close();
-
-    // if (execl("bash", "python", "plot.py", NULL) == -1) {
-    //     std::cout << "Error: exec plot" << std::endl;
-    //     return 5;
-    // }
-
     return 0;
 }
 
