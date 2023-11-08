@@ -1,4 +1,4 @@
-c# Parse file
+# Parse file
 with open('out.txt', 'r', encoding='utf-8') as f:
     lines = f.readlines()
 
@@ -60,7 +60,7 @@ fig_2 = plt.figure(figsize=(4, 4))
 ax_1 = fig.add_subplot()
 ax_2 = fig_2.add_subplot()
 
-colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k', 'w']
+colors = ['r', 'g', 'b', 'c', 'm', 'y', 'k']
 i = 0
 for old_claster in old_clasters:
     x = []

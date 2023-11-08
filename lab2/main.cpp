@@ -1,19 +1,14 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
-#include <ctime>
 #include <vector>
 #include <algorithm>
 #include <cmath>
 #include <pthread.h>
 #include <unistd.h>
 
-int const MAX_COORD = 10000; // Задаю квадрат 20x20
-int const POINTS_COUNT = 1000; // Задаю количество точек
 int const STEPS = 100; // Количество итераций, за которое мы будем искать кластеры
-int const MAX_THREADS = 4;
-pthread_mutex_t mutex;
-
+int const MAX_THREADS = 8; // Задаю количество потоков
 
 struct Point {
     int x;
@@ -32,8 +27,6 @@ struct Args {
     std::vector<Claster> *clasters;
 };
 
-// Делаю случайную выбоку точек
-std::vector<Point> make_random_sample(int count, int max_num);
 // Дистанция от точки до точки
 double distance(Point lhs, Point rhs);
 // «Привязываем» каждую точку к тому центроиду, к которому она ближе
@@ -42,13 +35,25 @@ void* connect_point(void* args);
 void* find_center(void* args);
 
 int main() {
-    int k = 5; // Число кластеров
-    // std::cout << "Введите количество кластеров" << std::endl;
-    // std::cin >> k;
-
-    std::srand(std::time(nullptr));
     pthread_t threads[MAX_THREADS];
-    std::vector<Point> points = make_random_sample(POINTS_COUNT, MAX_COORD);
+    int POINTS_COUNT;
+    int MAX_COORD;
+    int k;
+    std::cout << "Введите количество кластеров:" << std::endl;
+    std::cin >> k;
+    std::ifstream in;
+    in.open("sample.txt");
+    in >> POINTS_COUNT;
+    in >> MAX_COORD;
+    std::vector<Point> points(POINTS_COUNT);
+    for (int i = 0; i < POINTS_COUNT; ++i) {
+        in >> points[i].x;
+        in >> points[i].y;
+        in >> points[i].claster;
+    }
+    in.close();
+
+
     std::vector<Claster> clasters(k);
     std::vector<Args> args(MAX_THREADS);
     for (int i = 0; i < MAX_THREADS; ++i) {
@@ -60,6 +65,8 @@ int main() {
         clasters[i].center.x = std::rand() % MAX_COORD;
         clasters[i].center.y = std::rand() % MAX_COORD;
         clasters[i].center.claster = i;
+        // Задаем capacity для вектора clasters.capacity (исправило проблему, но костыль)
+        clasters[i].points.reserve(POINTS_COUNT);
     }
 
     // Записываем начальные координаты в файл (для дальнейшей визуализации)
@@ -67,7 +74,7 @@ int main() {
     out.open("out.txt");
     if (out.is_open()) {
         // Записываем в файл
-        out << MAX_COORD << ' ' << POINTS_COUNT << std::endl;
+        out << POINTS_COUNT << ' ' << MAX_COORD << std::endl;
         out << k << std::endl;
     }
     
@@ -78,25 +85,20 @@ int main() {
             clasters[i].points.clear();
         }
         // Сначала мы «привязываем» каждую точку к тому центроиду, к которому она ближе
-        // Надо делать параллельно
         for (int i = 0; i < MAX_THREADS; ++i) {
             if (pthread_create(&threads[i], NULL, connect_point, (void*) &args[i]) != 0) {
                 std::cout << "Error: thread did not create " << i << std::endl;
                 return 1;
             }
-            // std::cout << "Created " << idx << std::endl;
         }
         for (int i = 0; i < MAX_THREADS; ++i) {
             if (pthread_join(threads[i], NULL) != 0) {
                 std::cout << "Error: thread did not join " << i << std::endl;
                 return 2;
             }
-            // std::cout << "Joined " << idx << std::endl;
         }
         
         // Передаем начальные кластеры в файл
-        // Параллельно делать не буду т.к может неправильно записаться в файл,
-        // можно сделать MUTEX, но есть ли в этом смысл
         if (step == 0) {
             for (int i = 0; i < k; ++i) {
                 out << i << ' ' << clasters[i].points.size() << ' ' <<
@@ -106,10 +108,7 @@ int main() {
                 }
             }
         }
-        
-
         // Ищем новый центр масс кластера
-        // Надо делать параллельно
         for (int i = 0; i < k; ++i) {
             clasters[i].center = {0, 0, i};
         }
@@ -118,16 +117,13 @@ int main() {
                 std::cout << "Error: thread did not create " << i << std::endl;
                 return 3;
             }
-            // std::cout << "Created " << idx << std::endl;
         }
         for (int i = 0; i < MAX_THREADS; ++i) {
             if (pthread_join(threads[i], NULL) != 0) {
                 std::cout << "Error: thread did not join " << i << std::endl;
                 return 4;
             }
-            // std::cout << "Joined " << idx << std::endl;
         }
-        
         // Проверка выделили мы все кластеры (Если нет, то рандомим все центры еще раз)
         int flag = 0;
         for (int i = 0; i < k; ++i) {
@@ -137,15 +133,12 @@ int main() {
                     clasters[j].center.y = std::rand() % MAX_COORD;
                 }
                 flag = 1;
-                std::cout << "ZEERROORORO" << std::endl;
                 break;
             }
         }
         if (flag == 1) {
             continue;
         }
-
-
         for (int i = 0; i < k; ++i) {
             clasters[i].center.x /= clasters[i].points.size();
             clasters[i].center.y /= clasters[i].points.size();
@@ -161,7 +154,6 @@ int main() {
         }
     }
  
-
     out.close();
     return 0;
 }
@@ -170,7 +162,6 @@ void* connect_point(void* args) {
     Args *arg = (Args*) args;
     int thread_id = arg->thread_id;
     int points_cnt = (int)(*arg->points).size();
-    // std::cout << "DEBUG(connect): " << thread_id << std::endl;
     for (int j = thread_id; j < points_cnt; j += MAX_THREADS) {
         int closest_claster_id = 0;
         double closest_distance = 1e9;
@@ -189,7 +180,6 @@ void* connect_point(void* args) {
 void* find_center(void* args) {
     Args *arg = (Args*) args;
     int thread_id = arg->thread_id;
-    // std::cout << "DEBUG(center): " << thread_id << std::endl;
     for (int i = 0; i < (int)(*arg->clasters).size(); ++i) {
         int points_cnt = (int) (*arg->clasters)[i].points.size();
         for (int j = thread_id; j < points_cnt; j += MAX_THREADS) {
