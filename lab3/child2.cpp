@@ -2,43 +2,67 @@
 #include <string>
 
 #include <unistd.h>
-
-std::string delete_spaces(const std::string& str) {
-    std::string res = "";
-    bool flag = 0;
-    for (char ch : str) {
-        if (ch != ' ') {
-            res += ch;
-            flag = 0;
-        }
-        if (ch == ' ' and flag == 0) {
-            res += ch;
-            flag = 1;
-        }
-    }
-    return res;
-}
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 int main() {
-    int len;
-    if (read(STDIN_FILENO, &len, sizeof(int)) != sizeof(int)) {
-        std::cout << "Error: read" << std::endl;
-        return 16;
+    
+    int fd_2 = open("temp_2.txt", O_RDWR);
+    if (fd_2 < 0) {
+        std::cout << "Error: open failed (fd2)" << std::endl;
+        return 1;
     }
-    std::string str(len, ' ');
-    if (read(STDIN_FILENO, str.data(), len) != len) {
-        std::cout << "Error: read" << std::endl;
-        return 17;
+    int fd_3 = open("temp_3.txt", O_RDWR);
+    if (fd_3 < 0) {
+        std::cout << "Error: open failed (fd3)" << std::endl;
+        return 2;
     }
-    str = delete_spaces(str);
-    len = str.size();
-    if (write(STDOUT_FILENO, &len, sizeof(int)) != sizeof(int)) {
-        std::cout << "Error: write" << std::endl;
-        return 18;
+
+    struct stat st_2;
+    if (fstat(fd_2, &st_2) < 0) {
+        close(fd_2);
+        std::cout << "Error: fstat failed(st_2)" << std::endl;
+        return 3;
     }
-    if (write(STDOUT_FILENO, str.c_str(), len) != len) {
-        std::cout << "Error: write" << std::endl;
-        return 19;
+
+    struct stat st_3;
+    if (fstat(fd_3, &st_3) < 0) {
+        close(fd_3);
+        std::cout << "Error: fstat failed(st_3)" << std::endl;
+        return 4;
     }
+
+    size_t fsize_2 = (size_t)st_2.st_size;
+    size_t fsize_3 = (size_t)st_3.st_size;
+
+    char* data_ptr_2 = (char*) mmap(nullptr, fsize_2, 
+                                    PROT_READ | PROT_WRITE, 
+                                    MAP_SHARED ,fd_2, 0);
+
+    char* data_ptr_3 = (char*) mmap(nullptr, fsize_3, 
+                                    PROT_READ | PROT_WRITE, 
+                                    MAP_SHARED ,fd_3, 0);
+
+    bool flag = 0;
+    size_t j = 0;
+    for (size_t i = 0; i < fsize_2; ++i) {
+        if (data_ptr_2[i] != ' ') {
+            data_ptr_3[j] = data_ptr_2[i];
+            flag = 0;
+            ++j;
+        }
+        if (data_ptr_2[i] == ' ' && flag == 0) {
+            data_ptr_3[j] = data_ptr_2[i];
+            flag = 1;
+            ++j;
+        }
+    }
+
+    close(fd_2);
+    close(fd_3);
+
     return 0;
 }
