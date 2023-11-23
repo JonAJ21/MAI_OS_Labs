@@ -21,20 +21,6 @@ int64_t dumb_prime_count(int64_t a, int64_t b) {
     return count;
 }
 
-// void sieve(int n, vector<int>& result) {
-//     result.assign(n + 1, 0);
-//     result[0] = 1;
-//     result[1] = 1;
-//     for (int i = 2; i <= n; i++) {
-//         if (result[i] != 0)
-//             continue;
-//         for (int j = i * 2; j <= n; j += i) {
-//             result[j] = 1;
-//         }
-//     }
-// }
-
-
 int64_t eratosthenes_prime_count(int64_t a, int64_t b) {
     std::vector<int64_t> sieve(b + 1, 1);
     sieve[0] = 0;
@@ -54,6 +40,13 @@ int64_t eratosthenes_prime_count(int64_t a, int64_t b) {
     return count;
 }
 
+double rectangle_area(double a, double b) {
+    return a * b;
+}
+
+double triangle_area(double a, double b) {
+    return (a * b) / 2;
+}
 
 
 int main() {
