@@ -1,4 +1,4 @@
-CC = g++
+CC = g++-12
 CFLAGS = -Wall -Wextra -O0 -g
 
 all: main.cpp child1.cpp child2.cpp
