@@ -12,4 +12,4 @@
 
 ЛР_5-7 : 38
 
-КП : 29
+КП : 29 https://github.com/JonAJ21/SimpleMessenger
