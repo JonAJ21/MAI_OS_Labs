@@ -19,6 +19,7 @@ public:
     int64_t _id;
     bool _available;
     std::chrono::_V2::system_clock::time_point _start;
+    int64_t _prev_time = 0;
     HeartbitNode(int64_t id,
                  bool available,  
                  std::chrono::_V2::system_clock::time_point start) : _id(id), 
@@ -106,6 +107,22 @@ std::string get_first_arg(std::string const & msg) {
     return res;
 }
 
+void get_command3(std::string const & msg, std::string& command, std::string& arg1) {
+    int flag = 0;
+    for (char ch : msg) {
+        if (ch == ' ') {
+            flag++;
+            continue;
+        }
+        if (flag == 0) {
+            command += ch;
+        }
+        if (flag == 1) {
+            arg1 += ch;
+        }
+    }
+}
+
 
 void create_computing_node(AMQP::Channel& channel,
                            std::map<int64_t, std::list<int64_t>>& node_id_map,
@@ -186,17 +203,39 @@ void kill_computing_node(AMQP::Channel& channel,
     
     for (auto it = list_begin; it != list_end; ++it) {
         if (*it == node_id) {
+            bool flag = false;
+            for (auto el : node_id_map[stoi(main_node_id_str)]) {
+                if (el == node_id) {
+                    flag = true;
+                }
+                if (flag) {
+                    for (int i = 0; i < hb.size(); ++i) {
+                        if (hb[i]._id == el) {
+                            hb[i]._available = false;
+                        }
+                    }
+                }
+            }
             node_id_map[stoi(main_node_id_str)].erase(it);
             break;
         }
     }
+
     
-    for (auto it = hb.begin(); it != hb.end(); ++it) {
-        if (it->_id == node_id) {
-            hb.erase(it);
-            break;
-        }
-    }
+
+    // for (size_t i = 0; i < hb.begin(); ++i) {
+    //     if (hb[i]._id == node_id) {
+    //         hb[i]._available = false;
+    //         std::cout << "Heartbit: node " + std::to_string(hb_list[i]._id) + " is unavailable now" << std::endl;
+    //         break;
+    //     }
+    // }
+    // for (auto it = hb.begin(); it != hb.end(); ++it) {
+    //     if (it->_id == node_id) {
+    //         it->_available = false;
+    //         break;
+    //     }
+    // }
 }
 
 void exec_timer(AMQP::Channel& channel,
@@ -222,7 +261,7 @@ void heartbit(AMQP::Channel& channel,
               int64_t heartbit_time)
 {
     std::string main_node_id_str = get_main_node(node_id_map, node_id);
-    std::string msg = "heartbit " + std::to_string(node_id) + " " + std::to_string(heartbit_time);
+    std::string msg = "heartbit " + std::to_string(node_id) + " " + std::to_string(heartbit_time) + " 0";
     channel.publish("", main_node_id_str.c_str(), msg.c_str());
 }
 
@@ -269,6 +308,9 @@ int main() {
                 int64_t arg1;
                 std::cin >> arg1;
                 hb_started = true;
+                if (arg1 == -1) {
+                    hb_started = false;
+                }
                 // for (auto node : hb_list) {
                 //     heartbit(channel, node_id_map, node._id, hb_list, arg1);
                 //     node._start = std::chrono::high_resolution_clock::now();
@@ -277,6 +319,7 @@ int main() {
                     heartbit(channel, node_id_map, hb_list[i]._id, hb_list, arg1);
                     hb_list[i]._start = std::chrono::high_resolution_clock::now();
                 }
+
             } else if (menu_command == "print_nodes") {
                 std::cout << "map:" << std::endl;
                 for (auto map_el : node_id_map) {
@@ -311,6 +354,24 @@ int main() {
         }
     });
 
+    std::thread th2([&]() {
+        while(true) {
+            if (!hb_started) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                for (size_t i = 0; i < hb_list.size(); ++i) {
+                    heartbit(channel, node_id_map, hb_list[i]._id, hb_list, -1);
+                    hb_list[i]._start = std::chrono::high_resolution_clock::now();
+                }
+
+
+                // std::string main_node_id_str = get_main_node(node_id_map, node_id);
+   
+                // std::string msg = "heartbit " + std::to_string(node_id) + " " + std::to_string(heartbit_time) + " 0";
+                // channel.publish("", main_node_id_str.c_str(), msg.c_str());
+            }
+        }
+    });
+
     channel.consume("0", AMQP::noack).onReceived(
             [&] (const AMQP::Message& message, 
                     uint64_t deliveryTag,
@@ -341,31 +402,43 @@ int main() {
                 } 
                 if (command2 == "heartbit") {
                     // std::cout << "Received " << msg << std::endl;
-                    std::string node_id_str = get_first_arg(msg);
-                    std::string heartbit_time = get_last_arg(msg);
 
-                    for (size_t i = 0; i < hb_list.size(); ++i) {
-                        if (hb_list[i]._id == stoi(node_id_str)) {
-                            auto end = std::chrono::high_resolution_clock::now();
-                            int64_t time = std::chrono::duration_cast<std::chrono::milliseconds>(end - hb_list[i]._start).count(); 
-                            // std::cout << "time: " << time << std::endl; //Uncomment to see time
-                            
-                            if (time > stoi(heartbit_time) * 4.032) {
-                                std::cout << "Heartbit: node " + std::to_string(hb_list[i]._id) + " is unavailable now" << std::endl; //Uncomment to see time
-                                hb_list[i]._start = end;
-                                hb_list[i]._available = false;
-                                break;
-                            }
-                            hb_list[i]._start = end;
-                            if (hb_list[i]._available == false) {
-                                hb_list[i]._available = true;
-                                std::cout << "Heartbit: node " + std::to_string(hb_list[i]._id) + " is available now" << std::endl;
-                            }
-                            break;
-                        }
+                    std::string node_id_str = "";
+                    std::string heartbit_time = "";
+                    std::string heartbit_timer = "";
+                    // get_command3(msg, node_id_str, heartbit_time);
+                    get_msg4(msg, node_id_str, heartbit_time, heartbit_timer);
+                    bool killed = false;
+                    if (stoi(heartbit_timer) >= 4 * stoi(heartbit_time)) {
+                        killed = true;
                     }
-                    heartbit(channel, node_id_map, stoi(node_id_str), hb_list, stoi(heartbit_time));
-                    std::this_thread::sleep_for(std::chrono::milliseconds(stoi(heartbit_time)));
+
+                    
+
+                    // std::string node_id_str = get_first_arg(msg);
+                    // std::string heartbit_time = get_second_arg(msg);
+                    if (heartbit_time != "-1") {
+                        for (size_t i = 0; i < hb_list.size(); ++i) {
+                            if (hb_list[i]._id == stoi(node_id_str)) {
+                                auto end = std::chrono::high_resolution_clock::now();
+                                int64_t time = std::chrono::duration_cast<std::chrono::milliseconds>(end - hb_list[i]._start).count(); 
+                                // std::cout << "time: " << time << std::endl; //Uncomment to see time
+                                if ((time > stoi(heartbit_time) * 4 && hb_list[i]._available == true) || killed) {
+                                    std::cout << "Heartbit: node " + std::to_string(hb_list[i]._id) + " is unavailable now" << std::endl;
+                                    hb_list[i]._start = end;
+                                    hb_list[i]._available = false;
+                                    break;
+                                }
+                                if (hb_list[i]._available == false) {
+                                    hb_list[i]._available = true;
+                                    std::cout << "Heartbit: node " + std::to_string(hb_list[i]._id) + " is available now" << std::endl;
+                                    break;
+                                }
+                            }
+                        }
+                        heartbit(channel, node_id_map, stoi(node_id_str), hb_list, stoi(heartbit_time));
+                    }
+                    // std::this_thread::sleep_for(std::chrono::milliseconds(stoi(heartbit_time)));
 
                 }
             }            
@@ -373,6 +446,7 @@ int main() {
     );
     handler.loop();
     th1.join();
+    th2.join();
     return 0;
 }
 

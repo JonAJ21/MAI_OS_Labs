@@ -1,0 +1,8 @@
+/home/jonaj/Desktop/StudyDir/MAI_OS_Labs/lab4/build/CMakeFiles/lib1.dir
+/home/jonaj/Desktop/StudyDir/MAI_OS_Labs/lab4/build/CMakeFiles/lib2.dir
+/home/jonaj/Desktop/StudyDir/MAI_OS_Labs/lab4/build/CMakeFiles/prog1.dir
+/home/jonaj/Desktop/StudyDir/MAI_OS_Labs/lab4/build/CMakeFiles/lib1d.dir
+/home/jonaj/Desktop/StudyDir/MAI_OS_Labs/lab4/build/CMakeFiles/lib2d.dir
+/home/jonaj/Desktop/StudyDir/MAI_OS_Labs/lab4/build/CMakeFiles/prog2.dir
+/home/jonaj/Desktop/StudyDir/MAI_OS_Labs/lab4/build/CMakeFiles/edit_cache.dir
+/home/jonaj/Desktop/StudyDir/MAI_OS_Labs/lab4/build/CMakeFiles/rebuild_cache.dir

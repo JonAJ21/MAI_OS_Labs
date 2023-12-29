@@ -28,7 +28,7 @@ target_link_libraries(poco_simple_handler ${Poco_LIBRARIES})
 
 
 # PROGS
-set(PROGS cont_node comp_node timer)
+set(PROGS cont_node comp_node)
 
 foreach(item ${PROGS})
     add_executable(${item} "${item}.cpp")

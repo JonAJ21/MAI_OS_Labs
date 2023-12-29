@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/prog1.dir/prog1.cpp.o -o prog1  liblib1.a liblib2.a -lm 

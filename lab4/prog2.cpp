@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "lib.h"
 
-char const LIBS[] = {"./liblib1d.so", "./liblib2d.so"};
+char const *LIBS[] = {"./liblib1d.so", "./liblib2d.so"};
 typedef int (*prime_count_func)(int A, int B);
 typedef float (*square_func)(float A, float B);
 

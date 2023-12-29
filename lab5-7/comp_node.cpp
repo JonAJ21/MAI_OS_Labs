@@ -58,6 +58,30 @@ void get_command4(std::string const & msg, std::string& command, std::string& ar
     }
 }
 
+void get_command5(std::string const & msg, std::string& command, std::string& arg1, std::string& arg2, std::string& arg3) {
+    int flag = 0;
+    for (char ch : msg) {
+        if (ch == ' ') {
+            flag++;
+            continue;
+        }
+        if (flag == 0) {
+            command += ch;
+        }
+        if (flag == 1) {
+            arg1 += ch;
+        }
+        if (flag == 2) {
+            arg2 += ch;
+        }
+        if (flag == 3) {
+            arg3 += ch;
+        }
+    }
+}
+
+
+
 
 class LocalTimer final {
 private:
@@ -160,6 +184,9 @@ int main(int argc, char * argv[]) {
                 } else {
                     channel.publish("", down_out_queue.c_str(), received_message.c_str());
                 }
+                std::string msg = "heartbit " + node_to_kill_str + " " + "1000" + " " + "99999";
+
+                channel.publish("", this_node_id_str.c_str(), msg.c_str());
             }
 
             if (command == "start") {
@@ -200,10 +227,28 @@ int main(int argc, char * argv[]) {
             if (command == "heartbit") {
                 std::string node_id_str = "";
                 std::string heartbit_time = "";
-                get_command4(received_message, command, node_id_str, heartbit_time);
+                std::string timer_str = "";
+                get_command5(received_message, command, node_id_str, heartbit_time, timer_str);
+                int64_t timer = stoi(timer_str);
                 if (node_id_str == this_node_id_str) {
-                    std::string msg = "up " + received_message;
-                    channel.publish("", up_out_queue.c_str(), msg.c_str());
+                    if (heartbit_time == "-1") {
+                        channel.publish("", down_out_queue.c_str(), received_message.c_str());
+                    }
+                    // std::this_thread::sleep_for(std::chrono::milliseconds(stoi(heartbit_time)));
+                    if (timer >= stoi(heartbit_time)) {
+                        std::string msg = "up " + received_message;
+                        channel.publish("", up_out_queue.c_str(), msg.c_str());
+                    } else {
+                        
+                        auto start = std::chrono::high_resolution_clock::now();
+                        std::this_thread::sleep_for(std::chrono::milliseconds(stoi(heartbit_time)) / 10);
+                        auto end = std::chrono::high_resolution_clock::now();
+                        int64_t time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+                        timer += time;
+                        std::string msg = "heartbit " + node_id_str + " " + heartbit_time + " " + std::to_string(timer);
+
+                        channel.publish("", this_node_id_str.c_str(), msg.c_str());
+                    }
                 
                 } else {
                     channel.publish("", down_out_queue.c_str(), received_message.c_str());
@@ -221,5 +266,6 @@ int main(int argc, char * argv[]) {
 
 
     handler.loop();
+    // th1.join();
     return 0;
 }

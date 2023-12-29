@@ -21,8 +21,8 @@ std::vector<Point> make_random_sample(int count, int max_num) {
 
 
 int main() {
-    int const MAX_COORD = 50000;
-    int const POINTS_COUNT = 1000;
+    int const MAX_COORD = 250;
+    int const POINTS_COUNT = 100;
     std::srand(std::time(nullptr));
 
     std::vector<Point> points = make_random_sample(POINTS_COUNT, MAX_COORD);

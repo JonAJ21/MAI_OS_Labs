@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC -shared -Wl,-soname,liblib2d.so -o liblib2d.so CMakeFiles/lib2d.dir/lib2.cpp.o  -lm 
